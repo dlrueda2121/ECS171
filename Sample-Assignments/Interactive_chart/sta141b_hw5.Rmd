@@ -1,0 +1,113 @@
+---
+title: "Homework 5"
+author: "Diana Rueda"
+date: "12/08/2020"
+output: html_document
+---
+
+
+```{r, setup}
+library(RJSONIO)
+library(XML)
+library(RCurl)
+library(rvest)
+```
+
+```{r}
+library(ggplot2)
+library(plotly)
+```
+
+```{r}
+ca_counties_covid <- readRDS("~/Downloads/ca.counties.covid.rds")
+counties = unique(ca_counties_covid$name)
+counties
+```
+
+
+
+```{r}
+sum(ca_counties_covid$name == counties[1])
+
+```
+
+```{r}
+head(ca_counties_covid)
+
+```
+
+```{r}
+casesByPopulation = round((ca_counties_covid$cases * 100) / ca_counties_covid$population, 6)
+deathsByPopulation = round((ca_counties_covid$deaths * 100) / ca_counties_covid$population, 6)
+
+```
+
+```{r}
+casesToDate = vector()
+for(i in counties){
+  temp = ca_counties_covid[ca_counties_covid$name == i, ]
+  sum = cumsum(temp$cases)
+  casesToDate = append(casesToDate, sum)
+  
+}
+
+```
+
+```{r}
+deathsToDate = vector()
+for(i in counties){
+  temp = ca_counties_covid[ca_counties_covid$name == i, ]
+  sum = cumsum(temp$deaths)
+  deathsToDate = append(deathsToDate, sum)
+  
+}
+```
+
+
+```{r}
+covid_plot = ca_counties_covid %>% highlight_key(~name) %>% ggplot(aes(x = date, y = cases, color = name, group = name)) + geom_line(aes(label3 = casesByPopulation, label4 = deathsByPopulation, label5 = casesToDate, label6 = deathsToDate, label2 = deaths)) + ggtitle("California Daily COVID-19 Cases By County") + xlab("Date") + ylab("Number of cases") + theme(plot.title = element_text(family = "Baskerville",  face = "bold", colour = "black", size = 18)) + theme(axis.title.x = element_text(family = "Baskerville", face = "bold", colour = "black", size = 12)) + theme(axis.title.y = element_text(family = "Baskerville", face = "bold", colour = "black", size = 12)) + labs(color = "Counties") + theme(legend.title = element_text(family = "Baskerville", face = "bold", size=12)) + scale_y_continuous(breaks = seq(0, max(ca_counties_covid$cases), 1000)) + scale_x_date(date_breaks = "months", date_labels = '%b')
+
+covid_plot
+
+```
+
+
+```{r}
+covid_plotly = ggplotly(covid_plot, tooltip = c("name", "date", "cases", "casesByPopulation", "deathsByPolution", "casesToDate", "deathsToDate")) %>% highlight(on = "plotly_hover", off = "plotly_doubleclick")
+covid_plotly
+
+```
+
+```{r}
+covid_plotly$sizingPolicy$browser$fill = FALSE
+htmlwidgets::saveWidget(covid_plotly, "covidCA.html", selfcontained = FALSE)
+covidCAdoc = htmlParse("covidCA.html")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
