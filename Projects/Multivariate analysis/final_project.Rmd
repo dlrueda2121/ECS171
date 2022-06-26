@@ -1,0 +1,493 @@
+---
+title: "Final Project"
+author: "Diana Rueda"
+date: "3/19/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+# 1. Multivariable Data Analysis
+
+## Introduction
+
+The goal of this multivariable data analysis is to identify and explore the relationships as well as make inferences between the variables in dataset T1-7 through a multivariable linear regression model.    
+     
+Dataset T1-7 contains average ratings of different factors over the course of treatment for radiotherapy patients. The columns are as follows:   
+     
+Col. 1: x1 = number of symptoms
+Col. 2: x2 = amount of activity (1-5 scale)
+Col. 3: x3 = amount of sleep (1-5 scale)
+Col. 4: x4 = amount of food consumed (1-3 scale)
+Col. 5: x5 = appetite (1-5 scale)
+Col. 6: x6 = skin reaction (0, 1, 2 or 3) 
+     
+For this analysis we will focus on the effects of the other variables on the number of symptoms a patient develops. We might be able to identify which behaviors contribute to a higher chance of developing symptoms while on radiotherapy. 
+
+
+
+```{r, echo = FALSE}
+library(readr)
+radio <- read_table2("~/Documents/winter 2021/sta 135/T1-7.DAT", col_names = c("symptoms", "activity","sleep","eat","appetite","skin_reaction"))
+
+```
+
+## Summary
+
+The first six rows of our data look like this: 
+    
+```{r, echo = FALSE}
+head(radio)
+```
+
+Summary statistics:
+
+```{r, echo = FALSE}
+summary(radio)
+```
+
+Upon a first glance at our data distribution below we can tell that variables eat and appetite are correlated. Thus in our analysis we should start by selecting only one of the two. In addition we can use intition to see what variables can provide interesting insights. For example, it does not make much sense to try to use a type of skin reaction to predict symptoms since that is a symptom itself. 
+
+```{r, echo = FALSE}
+plot(radio)
+```
+
+
+```{r, echo = FALSE}
+Y <- as.matrix(radio[,1])
+n <- length(Y)
+Z <- cbind(rep(1,n),as.matrix(radio[,2:4]))
+r <- dim(Z)[2]-1
+model = lm(Y~Z)
+summary_first = summary(model)
+
+```
+
+
+## Analysis
+
+Following our intuition from the data summary we start by fitting a linear regression model with symptoms as the response variable and activity, sleep and eat as the explanatory variables.
+
+```{r, echo = FALSE}
+summary_first
+```
+
+
+```{r, echo = FALSE}
+Y <- as.matrix(radio[,1])
+n <- length(Y)
+Z <- cbind(rep(1,n),as.matrix(radio[,2:3]))
+r <- dim(Z)[2]-1
+model = lm(Y~Z)
+summary = summary(model)
+
+```
+
+From the estimates and its significance at level alpha = 0.05 we can see that eat does not provide enough information to be significant. Perhaps we can try to see what removing this variable does to the model.
+
+```{r, echo = FALSE}
+summary
+```
+
+
+```{r, echo = FALSE}
+# least square estimates
+beta_hat <- solve(t(Z)%*%Z)%*%t(Z)%*%Y
+```
+
+As we can see the statistics remain stable while activity and sleep remain equally significant as before. Removing eat did not affect our linear model significantly. Therefore our chosen model for analysis is Symptoms ~ activity + sleep at level alpha = 0.05 .     
+      
+The least squared estimates corresponding to this model are:
+```{r, echo = FALSE}
+beta_hat
+```
+
+
+```{r, echo = FALSE}
+# R^2 statistic
+R_square <- 1 - sum((Y - Z%*%beta_hat)^2)/sum((Y-mean(Y))^2)
+
+```
+
+with an R-squared statistic of `r R_square`.
+
+```{r, echo = FALSE}
+# sigma_hat_square
+sigma_hat_square <- sum((Y - Z%*%beta_hat)^2)/(n-r-1)
+
+```
+
+```{r, echo = FALSE}
+# estimated covariance of hat{beta}
+cov_est = sigma_hat_square * solve(t(Z)%*%Z)
+```
+
+The estimated covariance matrix of the estimates in $\hat{\beta}$ is:  
+
+```{r}
+cov_est
+```
+
+```{r, echo = FALSE}
+Omega <- solve(t(Z)%*%Z)
+```
+
+```{r, echo = FALSE}
+# t-test for single coefficient
+# H_0: beta_j = 0, H_a: beta_j != 0
+
+j <- 1
+t_stat <- (beta_hat[j+1] - 0)/sqrt(sigma_hat_square * solve(t(Z)%*%Z)[j+1,j+1])
+
+alpha <- 0.05
+cval_t <- qt(1-alpha/2, n-r-1)
+```
+
+##### Testing H-null: beta_j = 0
+From t-test for $\hat{\beta}_1$ we obtained a t-statistic of `r t_stat` and a `r cval_t`    
+Therefore we can reject the null hypothesis that the estimate $\hat{\beta}_1$ is zero at level alpha = 0.05 .
+
+```{r, echo = FALSE}
+# t-test for single coefficient
+# H_0: beta_j = 0, H_a: beta_j != 0
+
+j <- 2
+t_stat <- (beta_hat[j+1] - 0)/sqrt(sigma_hat_square * solve(t(Z)%*%Z)[j+1,j+1])
+
+alpha <- 0.05
+cval_t <- qt(1-alpha/2, n-r-1)
+```
+
+From t-test for $\hat{\beta}_2$ we obtained a t-statistic of `r t_stat` and a `r cval_t`
+Therefore we can reject the null hypothesis that the estimate $\hat{\beta}_2$ is zero at level alpha = 0.05 .      
+      
+
+We proceed to find confedence intervals for these estimators.
+
+The following 95% confidence interval was found for $\hat{\beta}_1$
+
+```{r, echo = FALSE}
+# One-at-a-time confidence interval for beta_j
+j <- 1
+cat('[',
+    beta_hat[j+1] - qt(1-alpha/2, n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + qt(1-alpha/2, n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+The following 95% confidence interval was found for $\hat{\beta}_2$
+
+```{r, echo = FALSE}
+# One-at-a-time confidence interval for beta_j
+j <- 2
+cat('[',
+    beta_hat[j+1] - qt(1-alpha/2, n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + qt(1-alpha/2, n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+The following 95% confidence region based simultaneous confidence intervals were found for $\hat{\beta}_1$ and $\hat{\beta}_2$ respectivly:
+
+```{r, echo = FALSE}
+# Confidence region based simultaneous confidence intervals
+j <- 1
+cat('[',
+    beta_hat[j+1] - sqrt((r+1)*qf(1-alpha,r+1,n-r-1))*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + sqrt((r+1)*qf(1-alpha,r+1,n-r-1))*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+```{r, echo = FALSE}
+# Confidence region based simultaneous confidence intervals
+j <- 2
+cat('[',
+    beta_hat[j+1] - sqrt((r+1)*qf(1-alpha,r+1,n-r-1))*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + sqrt((r+1)*qf(1-alpha,r+1,n-r-1))*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+The following 95% confidence intervals for $\hat{\beta}_1$ and $\hat{\beta}_1$ were obtained with bonferroni correction
+
+```{r, echo = FALSE}
+# Bonferroni correction based confidence intervals
+j <- 1
+cat('[',
+    beta_hat[j+1] - qt(1-alpha/(2*(r+1)), n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + qt(1-alpha/(2*(r+1)), n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+```{r, echo = FALSE}
+# Bonferroni correction based confidence intervals
+j <- 2
+cat('[',
+    beta_hat[j+1] - qt(1-alpha/(2*(r+1)), n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ',',
+    beta_hat[j+1] + qt(1-alpha/(2*(r+1)), n-r-1)*sqrt(sigma_hat_square * Omega[j+1,j+1]),
+    ']')
+```
+
+Finally we use an F-test to test for H_0: beta_1 = beta_2 = 0 at level alpha = 0.05 
+
+```{r}
+# F-test
+# H_0: beta_1 = beta_2 = 0
+C <- matrix(c(0,0,1,0,0,1),2,3)
+
+df_1 <- qr(C)$rank # df_1: rank of matrix C
+q = 0
+
+Omega_22 = C%*% solve(t(Z)%*%Z) %*%t(C)
+f_stat <- t(C%*%beta_hat)%*%solve(Omega_22)%*%(C%*%beta_hat)
+
+cval_f <- qf(1-alpha, 2, n-r-1)
+critical = cval_f * df_1 * sigma_hat_square
+f_stat
+critical
+```
+
+with a level alpha = 0.05 we find that the f-statistic is `r f_stat` while the critical value is `r critical`. Therefore we can reject the null hypothesis that the estimate $\hat{\beta}_1=\hat{\beta}_2=0$ at level alpha = 0.05 .    
+
+
+## Conclusion
+
+The result above agree that the estimates $\hat{\beta}_1$ and  $\hat{\beta}_2$ are not zero and therefore the variables in the model proposed have a significant weight in the determination of 
+the response variable "symptoms".    
+We can use this model to predict the value of symptoms for a new patient with significant certainty. 
+
+Let's say we have a new patient with a score of 2.5 in activity and 3.0 in sleep. What can they expect?    
+The following is a 95% confidence interval for a new obsevation 
+```{r, echo = FALSE}
+# prediction interval for Y_0 = z_0^T beta + epsilon_0
+z_0 <- c(1, 2.5, 3.0)
+
+cat('[',
+    z_0%*%beta_hat - sqrt(sigma_hat_square)*qt(1-alpha/2, n-r-1)*sqrt(1+t(z_0)%*%solve(t(Z)%*%Z)%*%z_0),
+    ',',
+    z_0%*%beta_hat + sqrt(sigma_hat_square)*qt(1-alpha/2, n-r-1)*sqrt(1+t(z_0)%*%solve(t(Z)%*%Z)%*%z_0),
+    ']')
+```
+
+
+------------------------------
+
+# 2. LDA
+
+## Introduction
+
+T11_02 LDA
+These data were edited from file T11-2.DAT on disk from book
+Salmon data (growth-ring diameters)
+Col. 1: location (1 = Alaskan, 2 = Canadian)
+Col. 2: gender (1 = female, 2 = male)
+Col. 3: X1 = diameter of rings for 1st yr freshwater growth (.01 in)
+Col. 4: X2 = diameter of rings for 1st yr marine growth (.01 in)
+
+
+```{r, echo = FALSE}
+salmon1 <- read_table2("~/Documents/winter 2021/sta 135/T11-2.DAT", col_names = c("location", "gender","x1","x2"))
+
+```
+
+
+```{r, echo = FALSE}
+library(MASS)
+lda.obj<-lda(location~x1+x2,data=salmon1, prior=c(1,1)/2)
+lda.obj
+plda<-predict(object=lda.obj, newdata=salmon1)
+```
+
+```{r, echo = FALSE}
+#determine how well the model fits
+true_class <- as.matrix(data.frame(lapply(salmon1[,1], as.character)))
+table(true_class, as.matrix(plda$class))
+
+```
+
+```{r, echo = FALSE}
+#plot the decision line
+gmean <- lda.obj$prior %*% lda.obj$means
+const <- as.numeric(gmean %*%lda.obj$scaling)
+slope <- - lda.obj$scaling[1] / lda.obj$scaling[2]
+intercept <- const / lda.obj$scaling[2]
+```
+
+
+```{r, echo = FALSE}
+#Plot decision boundary
+plot(salmon1[,c(3,4)],pch=rep(c(18,20),each=50),col=rep(c(2,4),each=50))
+abline(intercept, slope)
+legend("topright",legend=c("Alaskan","Canadian"),pch=c(18,20),col=c(2,4))
+
+```
+
+
+
+
+
+-------------------------------
+
+# 3. PCA
+
+## Introduction
+The goal of this analysis is to find the minimum amount of data we can use to obtain the most information. We will be maximizing the information obtained by using the components that provide more than 90% of the variance.     
+
+This analysis is to be carried away on data which contains the carapace measurements in milimeters for painted turtles. The asspects that are meassured are width, length and height. In addition to this it also contains a column with gender information. 
+
+T6_9
+Carapace measurements in milimeters for painted turtles
+Col. 1: x1 = length
+Col. 2: x2 = width
+Col. 3: x3 = height
+Col. 4: Gender (1 = female,2 = male)
+
+```{r, echo = FALSE}
+turtles <- read_table2("~/Documents/winter 2021/sta 135/T6-9.DAT", col_names = c("length", "width","height","gender"))
+
+n = length(turtles$gender)
+for (i in 1:n) {
+  if(turtles$gender[i]=="female"){
+    turtles$gender[i] = 1
+  }else if(turtles$gender[i]=="male"){
+    turtles$gender[i] = 2
+  }
+}
+turtles$gender = as.integer(turtles$gender)
+```
+
+## Summary 
+The first six rows of our data look like this:   
+
+    
+```{r, echo = FALSE}
+head(turtles)
+```
+
+Summary statistics:
+
+```{r, echo = FALSE}
+summary(turtles)
+```
+
+The following is a boxplot of length by gender
+
+```{r, echo = FALSE}
+library(ggplot2)
+ ggplot(turtles, aes(x=gender, y=length)) + 
+    geom_boxplot() +
+    facet_wrap(~gender, scale="free")
+```
+The following is a boxplot of width by gender
+
+```{r, echo = FALSE}
+ ggplot(turtles, aes(x=gender, y=width)) + 
+    geom_boxplot() +
+    facet_wrap(~gender, scale="free")
+```
+
+The following is a boxplot of height by gender
+
+```{r, echo = FALSE}
+ ggplot(turtles, aes(x=gender, y=height)) + 
+    geom_boxplot() +
+    facet_wrap(~gender, scale="free")
+```
+
+From these plots and from knowledge we can tell that there might be a relationship between size of the turtle and gender.
+
+## Analysis
+
+The principal components of this data are as follow 
+
+```{r, echo = FALSE}
+turtles_df <- data.frame(turtles)
+turtles_pc <- princomp(turtles_df, cor=T)
+
+# Showing the coefficients of the components:
+summary(turtles_pc,loadings=T)
+
+```
+
+We can se that the first two components provide more than 90% of the variance.
+
+The eigenvalues of the correlation matrix are:
+
+```{r, echo = FALSE}
+# Showing the eigenvalues of the correlation matrix:
+eigenval <- (turtles_pc$sdev)^2
+eigenval
+```
+
+From the following plot we can see the component contribution to the distribution.
+
+```{r, echo = FALSE}
+# A scree plot:
+plot(1:(length(turtles_pc$sdev)), (turtles_pc$sdev)^2, type='b', 
+     main="Scree Plot", xlab="Number of Components", ylab="Eigenvalue Size")
+
+```
+
+Notice the elbow occurs at 2 components. Thus lets continue our analysis with this in mind.      
+     
+
+Plotting the PC scores for the sample data in the space of the first two principal components:  
+ 
+```{r, echo = FALSE}
+# Plotting the PC scores for the sample data in the space of the first two principal components:
+
+par(pty="s")
+plot(turtles_pc$scores[,1], turtles_pc$scores[,2], 
+     xlab="PC 1", ylab="PC 2", type ='n', lwd=2)
+# labeling points with state abbreviations:
+text(turtles_pc$scores[,1], turtles_pc$scores[,2], labels = turtles$gender, cex=0.7, lwd=2)
+
+# We see the Southeastern states grouped in the bottom left 
+# and several New England states together in the bottom right.
+```
+
+Notice there is a clear distinction between the genders. Now we use a biplot to see more detail.
+
+```{r, echo = FALSE}
+# The biplot can add information about the variables to the plot of the first two PC scores:
+
+biplot(turtles_pc)
+
+```
+
+From this point we can observe that the three variables containing measurements point to the same direction. Two of them in particular seem to be highly correlated. That is widht and lenght. 
+
+## Conclusion
+
+Since the first two components provide more than 90% of the variance, they are enough to provide the necesary information about this data. In addition we can see that there is correlation between the variables but ultimatly a distinction between female and male turtles.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Code Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
+
+

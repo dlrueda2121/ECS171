@@ -1,0 +1,339 @@
+---
+title: "Project"
+author: "Diana Rueda"
+date: "12/7/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+In order to analyze the relationships within the data, we start by looking at the proportions of smoking status, sex, race, lenght of employment and dustiness of workplace in comparison to the presence and absence of byssinosis. Then we continue to test for independance in each case with the assistance of contingency tables and likelihood ratio test. Finally we build a generalized linear model with the assistance of functions such as glm and step.
+
+We should note that the data contained in Byssinosis.csv is in wide format. Thus, there are two columns containing counts of infections of byssinosis (Byssinosis) and non infected employees (Non.Byssinosis).  
+
+```{r}
+bys = read.csv('Byssinosis.csv')
+```
+
+## Analyzing Proportion Visualizations by Column
+
+### Sex 
+
+```{r}
+# visualize Sex proportions
+table_sex = aggregate(cbind(Byssinosis, Non.Byssinosis) ~ Sex, data = bys, sum)
+rownames(table_sex) = table_sex$Sex
+table_sex = subset(table_sex, select = -Sex)
+
+mosaicplot(table_sex, main = 'Byssinosis grouped by sex', color = 'darkolivegreen')
+```
+
+The male employees have a bigger proportion of byssinosis as compared to female. From the mosaic plot we can see it is more than twice the proportion of women with byssinosis. Sex might be a good variable for our model but more analysis is required. 
+
+### Employment
+
+```{r}
+# visualize Employment proportions
+table_employment = aggregate(cbind(Byssinosis, Non.Byssinosis) ~ Employment, data = bys, sum)
+rownames(table_employment) = table_employment$Employment
+table_employment = subset(table_employment, select = -Employment)
+
+mosaicplot(table_employment, main = 'Byssinosis grouped by employment', color = 'darkolivegreen')
+```
+
+The employees who have been there for more than 20 years have a bigger proportion of byssinosis as compared to those who have been there for a shorter period of time. From the mosaic plot we can see the proportion increases as the amount of years increase. Length of employment might have a linear relationship with the amount of infections among employeesbut more analysis is required.
+
+### Smoking
+
+```{r}
+# visualize Smoking proportions
+table_smoking = aggregate(cbind(Byssinosis, Non.Byssinosis) ~ Smoking, data = bys, sum)
+rownames(table_smoking) = table_smoking$Smoking
+table_smoking = subset(table_smoking, select = -Smoking)
+
+mosaicplot(table_smoking, main = 'Byssinosis grouped by smoking', color = 'darkolivegreen')
+```
+
+The employees who smoke have a bigger proportion of byssinosis as compared to non smokers. From the mosaic plot we can see it is more than twice the proportion of women with byssinosis. Smoking might be a good variable for our model but more analysis is required. 
+
+### Race
+
+```{r}
+# visualize Race proportions
+table_race = aggregate(cbind(Byssinosis, Non.Byssinosis) ~ Race, data = bys, sum)
+rownames(table_race) = table_race$Race
+table_race = subset(table_race, select = -Race)
+
+mosaicplot(table_race, main = 'Byssinosis grouped by race', color = 'darkolivegreen')
+```
+
+The employees from other races have a bigger proportion of byssinosis as compared to white employees. From the mosaic plot we can see it is almost twice the proportion of white employees with byssinosis. Race might also be a good variable for our model but more analysis is required. 
+
+### Workplace
+
+```{r}
+# visualize Workspace proportions
+table_workspace = aggregate(cbind(Byssinosis, Non.Byssinosis) ~ Workspace, data = bys, sum)
+rownames(table_workspace) = table_workspace$Workspace
+table_workspace = subset(table_workspace, select = -Workspace)
+
+mosaicplot(table_workspace, main = 'Byssinosis grouped by workspace', color = 'darkolivegreen')
+```
+
+The employees working in a mostly dusty environment have a bigger proportion of byssinosis as compared to those working in less and least dusty environments. The amount of dust in the work environment might be a great variable for our model.
+
+## Analyzing Independance 
+
+We are using Likelihood Ratio test to test for independance. The null hypothesis states the following variables are independent from Byssinosis.
+
+### Sex
+
+The observe counts for Byssinosis ~ Sex:
+
+```{r}
+table_sex
+
+```
+
+The expected counts for Byssinosis ~ Sex:
+
+```{r}
+E_sex = outer(rowSums(table_sex), colSums(table_sex)) / sum(table_sex)
+E_sex
+
+```
+
+The Likelihood ratio test statistic for Byssinosis ~ Sex is:
+
+```{r}
+#Likelihood ratio test
+LRstat = 2 * sum(table_sex * log(table_sex / E_sex))
+LRstat
+```
+
+The p-value for Byssinosis ~ Sex under the null hypothesis is:
+
+```{r}
+# p-value
+1 - pchisq(LRstat, 1)
+```
+
+Since the p-value < 0.05 we reject the null hypothesis of independence. Thus, there is significant evidence to say there exists dependance between these two variables.
+
+### Smoking
+
+The observe counts for Byssinosis ~ Smoking:
+
+```{r}
+table_smoking
+
+```
+
+The expected counts for Byssinosis ~ Smoking:
+
+```{r}
+E_smoking = outer(rowSums(table_smoking), colSums(table_smoking)) / sum(table_smoking)
+E_smoking
+
+```
+
+The Likelihood ratio test statistic for Byssinosis ~ Smoking is:
+
+```{r}
+#Likelihood ratio test
+LRstat = 2 * sum(table_smoking * log(table_smoking / E_smoking))
+LRstat
+```
+
+The p-value for Byssinosis ~ Smoking under the null hypothesis is:
+
+```{r}
+# p-value
+1 - pchisq(LRstat, 1)
+```
+
+Since the p-value < 0.05 we reject the null hypothesis of independence. Thus, there is significant evidence to say there exists dependance between these two variables.
+
+### Employment
+
+The observe counts for Byssinosis ~ Employment:
+
+```{r}
+table_employment
+
+```
+
+The expected counts for Byssinosis ~ Employment:
+
+```{r}
+E_employment = outer(rowSums(table_employment), colSums(table_employment)) / sum(table_employment)
+E_employment
+
+```
+
+The Likelihood ratio test statistic for Byssinosis ~ Employment is:
+
+```{r}
+#Likelihood ratio test
+LRstat = 2 * sum(table_employment * log(table_employment / E_employment))
+LRstat
+```
+
+The p-value for Byssinosis ~ Employment under the null hypothesis is:
+
+```{r}
+# p-value
+1 - pchisq(LRstat, 1)
+```
+
+Since the p-value < 0.05 we reject the null hypothesis of independence. Thus, there is significant evidence to say there exists dependance between these two variables.
+
+
+### Race
+
+The observe counts for Byssinosis ~ Race:
+
+```{r}
+table_race
+
+```
+
+The expected counts for Byssinosis ~ Race:
+
+```{r}
+E_race = outer(rowSums(table_race), colSums(table_race)) / sum(table_race)
+E_race
+
+```
+
+The Likelihood ratio test statistic for Byssinosis ~ Race is:
+
+```{r}
+#Likelihood ratio test
+LRstat = 2 * sum(table_race * log(table_race / E_race))
+LRstat
+```
+
+The p-value for Byssinosis ~ Race under the null hypothesis is:
+
+```{r}
+# p-value
+1 - pchisq(LRstat, 1)
+```
+
+Since the p-value < 0.05 we reject the null hypothesis of independence. Thus, there is significant evidence to say there exists dependance between these two variables.
+
+
+### Workspace
+
+The observe counts for Byssinosis ~ Workspace:
+
+```{r}
+table_workspace
+
+```
+
+The expected counts for Byssinosis ~ Workspace:
+
+```{r}
+E_workspace = outer(rowSums(table_workspace), colSums(table_workspace)) / sum(table_workspace)
+E_workspace
+
+```
+
+The Likelihood ratio test statistic for Byssinosis ~ Workspace is:
+
+```{r}
+#Likelihood ratio test
+LRstat = 2 * sum(table_workspace * log(table_workspace / E_workspace))
+LRstat
+```
+
+The p-value for Byssinosis ~ Workspace under the null hypothesis is:
+
+```{r}
+# p-value
+1 - pchisq(LRstat, 1)
+```
+
+Since the p-value < 0.05 we reject the null hypothesis of independence. Thus, there is significant evidence to say there exists dependance between these two variables.      
+
+## Model Selection
+
+We have found there is dependence between all of these variables and the presence of byssinosis on employees. Now we proceed to fit a generalized linear model by forward stepwise regression.
+
+```{r}
+library(tidyr)
+```
+
+```{r}
+# transform wide to long data
+temp_count = gather(bys, Byssinosis, count, Byssinosis:Non.Byssinosis ,factor_key = TRUE)
+
+temp_rows = subset(temp_count,  select = -count)
+long_data = data.frame()
+
+for (i in 1:dim(temp_rows)[1]) {
+  n = temp_count[['count']][i]
+  temp = temp_rows[rep(i, n), ]
+  long_data = rbind(long_data, temp)
+  
+}
+
+long_data['Byssinosis'] = ifelse(long_data$Byssinosis == 'Byssinosis', 1,0)
+
+```
+
+
+```{r}
+# build the model
+result <- step(glm(Byssinosis ~ 1, binomial, long_data),
+               scope = ~Workspace*Sex*Smoking*Employment*Race,
+               test="LRT",
+               direction = "forward")
+
+```
+
+
+Using forward step regression with all the variables and its interactions we found that the best model according to the AIC is Byssinosis ~ Workspace + Smoking + Employment + Workspace:Smoking
+
+```{r}
+model = glm(Byssinosis ~ Workspace + Smoking + Employment + Workspace:Smoking, binomial, long_data)
+summary(model)
+
+```
+
+The summary of the model selected shows that all but one coefficients are significant. Next we look at the confidence intervals. Below we can see that the only interval containing zero is the one corresponding to the estimate beta for Workspace:SmokingYes which happens to be the same estimate that resulted non significant for our model. Thus, we fail to reject the null hypothesis that this estimate equals zero. In other words we do not have enough evidence to suggest that the estimate for the contribution of the interaction Workspace:SmokingYes is non zero.
+
+```{r}
+# confidence intervals
+confint.default(model)
+```
+
+By removing this interaction from the model we obtain the folowing results where all the estimates continue to be significant but the AIC increases from 1236.1 to 1236.5. Thus if your goal requires you to prioritize minimizing AIC The model with formula Byssinosis ~ Workspace + Smoking + Employment + Workspace:Smoking is the best choise.
+
+```{r}
+model2 = glm(Byssinosis ~ Workspace + Smoking + Employment, binomial, long_data)
+summary(model2)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

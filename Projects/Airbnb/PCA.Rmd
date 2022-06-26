@@ -1,0 +1,178 @@
+---
+title: "PCA Midterm project"
+author: "Diana Rueda"
+date: "5/3/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Loading the data and displaying the head
+
+```{r}
+library(readxl)
+data <- read_excel("~/Documents/group5/data.xlsx", range = "A1:P32810", na = "NA")
+head(data)
+
+```
+
+Dropping unessesary variables for the purpose of this study
+
+```{r}
+#remove useless variables
+drop = c( "id", "name", "host_id", "host_name", "latitude", "longitude", "last_review","calculated_host_listings_count")
+data = data[,!(names(data) %in% drop)]
+head(data)
+
+```
+
+---------------------------------------------
+
+```{r}
+library(dummies)
+```
+
+
+
+```{r}
+#remove dependent variable
+#df_no_price <- data[,!(names(data) %in% c("price"))]
+df_no_price <- data
+head(df_no_price)
+```
+
+```{r}
+unique(df_no_price["neighbourhood"])
+
+```
+
+```{r}
+unique(df_no_price["neighbourhood_group"])
+
+```
+
+
+------------------------------------------------
+
+```{r}
+library(fastDummies)
+```
+
+
+```{r}
+df_dummies <- dummy_cols(df_no_price, select_columns = c("neighbourhood_group", "room_type"))
+head(df_dummies)
+
+```
+
+```{r}
+#remove useless variables
+drop = c( "neighbourhood_group", "neighbourhood", "room_type", "reviews_per_month")
+df_dummies = df_dummies[,!(names(df_dummies) %in% drop)]
+head(df_dummies)
+```
+
+
+```{r, echo = FALSE}
+#data_df <- data.frame(data)
+data_pc <- prcomp(df_dummies, scale. = T)
+
+# Showing the coefficients of the components:
+summary(data_pc)
+
+```
+
+```{r}
+# A scree plot:
+plot(1:(length(data_pc$sdev)), (data_pc$sdev)^2, type='b', 
+     main="Scree Plot", xlab="Number of Components", ylab="Eigenvalue Size")
+
+```
+
+```{r}
+data_pc$rotation
+```
+
+
+```{r}
+data_pc
+```
+
+```{r}
+biplot(data_pc, scale = 0)
+```
+
+
+-----------------------------------------------
+
+In the next few cells I experiment with modeling only over data in one of the neighbothood groups. Results were less significant so we disregard this part in our analysis.
+
+```{r}
+df_bronx <- data[data$neighbourhood_group == "Bronx",]
+head(df_bronx)
+```
+
+
+
+```{r}
+df_bronx_dummies <- dummy_cols(df_bronx, select_columns = c("neighbourhood_group", "room_type"))
+head(df_bronx_dummies)
+
+```
+
+
+```{r}
+#remove useless variables
+drop = c( "neighbourhood_group", "neighbourhood", "room_type", "reviews_per_month")
+df_bronx_dummies = df_bronx_dummies[,!(names(df_bronx_dummies) %in% drop)]
+head(df_dummies)
+```
+
+
+
+```{r}
+fit_bronx <- lm(price ~ ., data = df_bronx_dummies)
+summary(fit_bronx)
+
+```
+
+
+```{r}
+# Stepwise Regression
+library(MASS)
+step <- stepAIC(fit_bronx, direction="both")
+step$anova # display results
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,283 @@
+---
+title: "Descriptive analysis - Airbnb at New York in 2019"
+Author: Ninh Nguyen - SID917287958
+output:
+  pdf_document: 
+    latex_engine: xelatex
+  html_document:
+    df_print: paged
+---
+# Descriptive analysis
+## Data cleaning
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+df <- read.csv("~/Documents/SPR21/STA160/Airbnb_NYC_2019.csv")
+df$last_review <- ymd(df$last_review)
+df$id <- str_pad(df$id,8,pad = "0")
+df$host_id <- str_pad(df$host_id,9,pad = "0")
+is.na(df) <- df == ''
+dfRemove <- df %>%
+  filter(year(df$last_review) < "2019")
+dfNew <- setdiff(df, dfRemove)
+dfRemove <- dfNew %>%
+  filter(dfNew$availability_365 >= 365)
+dfNew <- setdiff(dfNew, dfRemove)
+dfRemove <- dfNew %>%
+  filter(is.na(last_review) & availability_365 == 1) 
+dfNew <- setdiff(dfNew, dfRemove)
+dfRemove <- dfNew %>%
+  filter(price < 35 | price > 500) 
+dfNew <- setdiff(dfNew, dfRemove)
+```
+# New dataset after removing outliers
+## Descriptive analysis
+
+```{r}
+dfNew$name <- as.factor(dfNew$name)
+dfNew$host_id <- as.factor(dfNew$host_id)
+dfNew$host_name <- as.factor(dfNew$host_name)
+dfNew$neighbourhood_group <- as.factor(dfNew$neighbourhood_group)
+dfNew$neighbourhood <- as.factor(dfNew$neighbourhood)
+dfNew$room_type <- as.factor(dfNew$room_type)
+summary(dfNew)
+```
+
+We have 32809 observations, id is the unique key.
+Name is not focus so we can not choose as catergorical variables
+Categorical variables: neighbourhood_group, neighbourhood, room_type
+Host_name: Sonder, Michael, David, Blueground have a chain leasing.
+### Zoom in figures
+#### Available 365
+```{r}
+dfNew$availability_365 <- as.factor(dfNew$availability_365)
+dfNew%>% 
+  select(id,neighbourhood_group,availability_365) %>%
+  summary()
+
+```
+In the top 6 availbability_365, the gap between availability = 1 and the others so different, so I make new dataset with available_365 > 1
+
+```{r}
+dfNew$availability_365 <- as.numeric(dfNew$availability_365)
+dfNew %>%  filter((availability_365 > 1 & availability_365 < 365) ) %>%
+  ggplot(aes(x=availability_365)) +
+  geom_freqpoly(binwidth = 1)+
+  labs(title = "Distribution of available_365 by a week") +
+  theme_bw()
+```
+As we can see available are high at <5 days, 90 days, 180 days, and 365 days. So there relationshiop between available and minimunights, because the numbers are the same with period of time.
+
+Make new column to category available_365 intro group: 30,90,180,300
+```{r}
+dfNew$avail_group <- dfNew$availability_365
+dfNew$avail_group[dfNew$avail_group<40] = 30
+dfNew$avail_group[dfNew$avail_group>=40 & dfNew$avail_group<100] = 90
+dfNew$avail_group[dfNew$avail_group>=100 & dfNew$avail_group<200] = 180
+dfNew$avail_group[dfNew$avail_group>=200] = 365
+
+
+dfNew %>%
+  group_by(avail_group) %>%
+  summarise(count = n()) %>%
+  ungroup()
+
+```
+
+#### Minimum_night
+```{r}
+dfNew$minimum_nights <- as.factor(dfNew$minimum_nights)
+df_night <- dfNew %>%  filter(availability_365 > 1) %>%
+  group_by(minimum_nights) %>%
+  summarise(count = n()) 
+df_night <- as.data.frame(df_night)
+df_night$minimum_nights <- as.numeric(df_night$minimum_nights)
+df_night %>%
+  ggplot(aes(y=count,x=minimum_nights, col = "blue")) +
+  geom_point() +
+  theme_bw()
+  
+```
+The users input free-style minimum_nights, we can see the numbers are high at 1,2,3,4,5,6,7 and 30.
+Zoom in to the data different with Minimum_night <=7 and = 30, we can see around 2 weeks, 1 month the data are high, too. 
+So, the user can choose minimum nights are a day, 2 days, 3 days ,a week, 2 weeks, a month, 3 month, 6 month, 12 month.
+
+```{r}
+dfNew$minimum_nights <- as.factor(dfNew$minimum_nights)
+df_night <- dfNew %>%  filter(availability_365 > 1) %>%
+  group_by(minimum_nights) %>%
+  summarise(count = n()) 
+df_night %>%
+  arrange(desc(count>5))
+df_night <- as.data.frame(df_night)
+df_night$minimum_nights <- as.numeric(df_night$minimum_nights)
+df_night %>%
+  filter(minimum_nights > 7 & minimum_nights != 30 & count > 25) %>%
+  ggplot(aes(y=count,x=minimum_nights, col = "blue")) +
+  geom_point() +
+  theme_bw()
+  
+```
+
+Make new column to category minimum_nights intro group: 1,7,15,30,90
+```{r}
+dfNew$minimum_nights_group <- dfNew$minimum_nights
+dfNew$minimum_nights_group[dfNew$minimum_nights_group<4] = 1
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=4 & dfNew$minimum_nights_group<10] = 7
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=10 & dfNew$minimum_nights_group<20] = 15
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=20 & dfNew$minimum_nights_group<40] = 30
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=40 & dfNew$minimum_nights_group<100] = 90
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=100 & dfNew$minimum_nights_group<300] = 180
+dfNew$minimum_nights_group[dfNew$minimum_nights_group>=300 ] = 365
+
+dfNew %>%
+  group_by(minimum_nights_group) %>%
+  summarise(count = n()) %>%
+  ungroup()
+
+```
+
+
+
+```{r}
+dfNew$availability_365 <- as.numeric(dfNew$availability_365)
+dfNew$minimum_nights <- as.numeric(dfNew$minimum_nights)
+dfNew %>%  filter((availability_365 > 1 & minimum_nights > 1) ) %>%
+  ggplot(aes(x=minimum_nights)) +
+  geom_freqpoly(binwidth = 1)+
+  labs(title = "Distribution of available_365 by a week") +
+  theme_bw()
+```
+
+
+```{r}
+dfNew$availability_365 <- as.numeric(dfNew$availability_365)
+dfNew %>% filter(availability_365 > 2 & availability_365 < 364  ) %>%
+  ggplot(aes(x=minimum_nights,y=price,col=room_type)) +
+  geom_point() +
+  coord_flip() +
+  facet_wrap(~neighbourhood_group) +
+  theme_bw() +
+  labs(title = "Relationship between price and minimum_nights by room type and by neighborhood group",subtitle = "Available_365 from 2 to 364") 
+```
+As the plot, we can see :
+About neighborhood : that most of observations in Manhattan.
+About room_type: 
+  - Most of observation in Entire home/apt 
+  - Price of entire home are larger than private room
+About price:
+  - Mininum_nights increase, prices descrease
+About minimum nights:
+  - Most mininum-nights are <7 and = 30
+  - Minimum_nights in Manhantan are longer than the others
+  
+#### Price
+```{r}
+dfNew %>%
+  ggplot(aes(x=neighbourhood_group,y=price, col = "green")) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~room_type) +
+  theme_bw() +
+  labs(title = "Distribution of price by room type and by neighbourhood_group") 
+```
+Price depends on room type and neighourhood_group is so clear. 
+Entire home: price from 75 to 250.
+Private room: price from 50 to 125
+Shared room: price from 50 to 75
+In Manhattan, there are the prices that larger than 250 usd.
+
+
+Shared room with the price > 100, no availability_365, host listing only 1 time and no last review means the sections are inactive, so I remove from dataset.
+```{r}
+dfRemove <- dfNew %>%
+  filter(room_type == "Shared room" & price > 100 & availability_365 == 0 & is.na(last_review)) 
+dfNew <- setdiff(dfNew, dfRemove)
+```
+
+```{r}
+dfNew %>%
+  filter(room_type == "Shared room" & price == 500) 
+  
+```
+
+
+This id 08324941 post the price is too high so it is available 364/365 days. I remove that to make the price is more reasonable.
+```{r}
+dfRemove <- dfNew %>%
+  filter(room_type == "Shared room" & price > 100 & neighbourhood_group == "Bronx") 
+dfNew <- setdiff(dfNew, dfRemove)
+```
+
+
+
+Shared room with the price > 100, no availability_365 with name Fraud and last review at the Jan, so I remove from dataset.
+```{r}
+dfRemove <- dfNew %>%
+  filter(room_type == "Shared room" & price > 100 & availability_365 == 0) 
+dfNew <- setdiff(dfNew, dfRemove)
+```
+
+
+```{r}
+dfNew %>%
+  filter(neighbourhood_group == "Manhattan") %>%
+  ggplot(aes(x=neighbourhood,y=price, col = "green")) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~room_type) +
+  theme_bw() +
+  labs(title = "Distribution of price by room type and by neighborhood in Manhattan") 
+```
+```{r}
+dfNew %>%
+  filter(neighbourhood_group == "Brooklyn") %>%
+  ggplot(aes(x=neighbourhood,y=price, col = "green")) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~room_type) +
+  theme_bw() +
+  labs(title = "Distribution of price by room type and by neighborhood in Brooklyn") 
+```
+```{r}
+dfNew %>%
+  filter(room_type == "Entire home/apt" & price > 300 & host_id == 107434423) %>%
+  summary()
+```
+Hostname Blueground with a lot of Entire home/apartment with price is larger than 300 only in Manhattan with minimum_night more than 1 month.
+
+
+We can see this, because Airbnb give free style input so minimum night, but we can see some period of time.
+Entirehome: 1 days, 1 week, 2 weeks, 1 month, 2 months, 3 months or long term rental
+Private room: 1 days, 1 week, 2 weeks, 1 month,(2 months, 3 months is not much) or medium term rental
+Shared room: short term rental
+
+Most of the post in Mahattan, with minimum nights are longer than other neighborhood group.
+
+#### Last review
+```{r}
+dfNew %>%
+  ggplot(aes(x=as.Date(last_review), col = as.factor(month(last_review)), group = month(last_review))) + geom_line(stat = "count") +
+  labs( x = "Year", col = " Year", title = " Count of last reviews for Airbnb at New York in 2019")
+```
+The lastest last review is 2019-07-08, so there are no more review after this day. 
+As the routine, last review happend in January.
+
+### Correlation between numeric variables
+We can see that there aren't correlation between all numeric variables : price, minimum_nights, review_per_month, calculated_host_lsiting_count, availability_365.
+```{r}
+mydata <- dfNew[, c(10,11,14,15,16)]
+library(PerformanceAnalytics)
+chart.Correlation(mydata)
+```
+
+
+# Conclusion:
+
+We can use neighbourhood_group, neighbourhood, room_type, minimum_nights_group to train model predict prices. After that we can compare predict price with true price and availability_365 to see How the different of price affect availability_365.
+
+

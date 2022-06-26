@@ -1,0 +1,86 @@
+---
+title: "MT-STA160"
+author: "Youngchan Park"
+date: "5/3/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+df <- read_csv("~/Desktop/2020 Spring Q/STA141A/AB_NYC_2019.csv")
+```
+```{r step_2, warning=FALSE}
+df %>%
+  group_by(room_type, neighbourhood_group) %>%
+  count(room_type) %>%
+  ggplot()+
+  geom_bar(aes(as.factor(room_type), n, fill=room_type), stat = 'identity')+
+  scale_fill_viridis_d()+
+  theme(legend.position = "none")+
+  labs(title = 'Number of Type Room by Neighbour group',
+       x='Room Type', 
+       y='Count')+
+  facet_wrap(~neighbourhood_group, ncol = 2)+
+  coord_flip()
+```
+
+```{r}
+df %>% leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron) %>% 
+  addMarkers(~longitude, ~ latitude, clusterOptions = markerClusterOptions())
+```
+As we can see in the Map, in Mahatan, there are Airbnb in almost apartments, eventhough an apartment have 3 rooms rental.
+### See room type histogram
+
+```{r step_2, warning=FALSE}
+df %>%
+  group_by(room_type, neighbourhood_group) %>%
+  count(room_type) %>%
+  ggplot()+
+  geom_bar(aes(as.factor(room_type), n, fill=room_type), stat = 'identity')+
+  scale_fill_viridis_d()+
+  theme(legend.position = "none")+
+  labs(title = 'Number of Type Room by Neighbour group',
+       x='Room Type', 
+       y='Count')+
+  facet_wrap(~neighbourhood_group, ncol = 2)+
+  coord_flip()
+```
+
+
+
+
+
+
+
+
+```{r step_6, warning=FALSE}
+df %>%
+  group_by(neighbourhood_group) %>%
+  select(price)%>%
+  summarise(average_price = mean(price))%>%
+  ggplot()+
+  geom_bar(aes(x=neighbourhood_group, y=average_price,fill=neighbourhood_group),stat = 'identity')+
+  ggtitle("Relation between Price and Location") 
+
+```
+
+```{r step_6, warning=FALSE}
+df %>%
+  group_by(neighbourhood_group, room_type) %>%
+  select(price)%>%
+  summarise(average_price = mean(price))%>%
+  ggplot()+
+  geom_bar(aes(x=room_type, y=average_price,fill=neighbourhood_group),stat = 'identity')+
+  ggtitle("Relation between Price and Location") 
+
+```

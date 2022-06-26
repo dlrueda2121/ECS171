@@ -1,0 +1,92 @@
+---
+title: "STA 160 Midterm Project"
+author: "Derek Wong"
+date: "4/28/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+
+# read in dataset
+data <- read_csv("~/Desktop/Airbnb_NYC_2019.csv", col_types = cols(host_id = col_character(), id = col_character(), last_review = col_date(format = "%Y-%m-%d")))
+```
+
+# Map of top 100 most expensive Airbnb listings in NYC
+```{r}
+library(ggmap)
+
+# getting top 100 listings by price
+top_data <- data %>% top_n(n = 100, wt = price)
+
+# get background map
+top_height <- max(top_data$latitude) - min(top_data$latitude)
+top_width <- max(top_data$longitude) - min(top_data$longitude)
+top_borders <- c(bottom  = min(top_data$latitude)  - 0.1 * top_height,
+                 top     = max(top_data$latitude)  + 0.1 * top_height,
+                 left    = min(top_data$longitude) - 0.1 * top_width,
+                 right   = max(top_data$longitude) + 0.1 * top_width)
+
+top_map <- get_stamenmap(top_borders, zoom = 12, maptype = "toner-lite")
+
+# map of top 100 most expensive listings
+ggmap(top_map) +
+    geom_point(data = top_data, mapping = aes(x = longitude, y = latitude,
+                                        col = price)) +
+    scale_color_gradient(low = "green", high = "red") +
+  xlab(expression(paste("Longitude (", degree,"E)"))) +
+  ylab(expression(paste("Latitude (", degree,"S)"))) 
+```
+Most of the expensive listings (Red being more expensive and green being relatively less) are along the East River.
+
+# Plot of room type vs price
+```{r}
+library(ggplot2)
+ggplot(data, aes(x = room_type, y = price)) +
+    geom_violin() +
+    scale_y_log10() +
+  xlab(expression(paste("room type"))) +
+  ylab(expression(paste("price")))
+```
+
+# Map of top 100 most expensive Airbnb listings in NYC
+```{r}
+neighborhood_data  <- data %>%
+    group_by(neighbourhood) %>%
+    summarize(num_listings = n(),
+              median_price = median(price),
+              long = median(longitude),
+              lat = median(latitude),
+              borough = unique(neighbourhood_group))
+
+neighborhood_data %>%
+    ggplot(aes(x = num_listings, y = median_price, col = borough)) +
+    geom_point(alpha = 0.5) + geom_smooth(se = FALSE) +
+    scale_x_log10() + scale_y_log10() +
+    theme_minimal() +
+    theme(legend.position = "bottom") +
+  xlab(expression(paste("Number of listings"))) +
+  ylab(expression(paste("Median ›price")))
+```
+
+# Map of top 100 most expensive Airbnb listings in NYC
+```{r}
+library(ggplot2)
+ggplot(data, aes(x = room_type, y = price)) +
+    geom_violin() +
+    scale_y_log10() +
+  xlab(expression(paste("room type"))) +
+  ylab(expression(paste("price")))
+```
+
+
+### Code Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
